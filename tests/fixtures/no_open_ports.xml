@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///C:/Program Files (x86)/Nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.991 scan initiated Thu Sep 24 14:17:30 2026 as: &quot;C:\\Program Files (x86)\\Nmap\\nmap.exe&quot; -sT -n -p 1-40 -oX no_open_ports.xml 127.0.0.1 -->
+<nmaprun scanner="nmap" args="&quot;C:\\Program Files (x86)\\Nmap\\nmap.exe&quot; -sT -n -p 1-40 -oX no_open_ports.xml 127.0.0.1" start="1790252250" startstr="Thu Sep 24 14:17:30 2026" version="7.991" xmloutputversion="1.05">
+<scaninfo type="connect" protocol="tcp" numservices="40" services="1-40"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1790252250" endtime="1790252250"><status state="up" reason="localhost-response" reason_ttl="0"/>
+<address addr="127.0.0.1" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="40">
+<extrareasons reason="conn-refused" count="40" proto="tcp" ports="1-40"/>
+</extraports>
+</ports>
+<times srtt="491" rttvar="557" to="100000"/>
+</host>
+<runstats><finished time="1790252250" timestr="Thu Sep 24 14:17:30 2026" summary="Nmap done at Thu Sep 24 14:17:30 2026; 1 IP address (1 host up) scanned in 0.29 seconds" elapsed="0.29" exit="success"/><hosts up="1" down="0" total="1"/>
+</runstats>
+</nmaprun>

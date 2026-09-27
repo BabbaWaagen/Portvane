@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///C:/Program Files (x86)/Nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.991 scan initiated Thu Sep 24 14:17:15 2026 as: &quot;C:\\Program Files (x86)\\Nmap\\nmap.exe&quot; -sT -Pn -n -p 80,443 -&#45;max-retries 0 -oX filtered.xml 192.0.2.1 -->
+<nmaprun scanner="nmap" args="&quot;C:\\Program Files (x86)\\Nmap\\nmap.exe&quot; -sT -Pn -n -p 80,443 -&#45;max-retries 0 -oX filtered.xml 192.0.2.1" start="1790252235" startstr="Thu Sep 24 14:17:15 2026" version="7.991" xmloutputversion="1.05">
+<scaninfo type="connect" protocol="tcp" numservices="2" services="80,443"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1790252235" endtime="1790252236"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="192.0.2.1" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports><port protocol="tcp" portid="80"><state state="filtered" reason="no-response" reason_ttl="0"/><service name="http" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="filtered" reason="no-response" reason_ttl="0"/><service name="https" method="table" conf="3"/></port>
+</ports>
+</host>
+<runstats><finished time="1790252236" timestr="Thu Sep 24 14:17:16 2026" summary="Nmap done at Thu Sep 24 14:17:16 2026; 1 IP address (1 host up) scanned in 1.15 seconds" elapsed="1.15" exit="success"/><hosts up="1" down="0" total="1"/>
+</runstats>
+</nmaprun>
