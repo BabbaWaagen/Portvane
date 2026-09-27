@@ -36,6 +36,8 @@ qt_add_executable(portvane WIN32
     src/Privileges.cpp
     src/Privileges.h
     src/ScanData.h
+    src/ScanFile.cpp
+    src/ScanFile.h
     src/ScanOptions.cpp
     src/ScanOptions.h
     src/ScanTableModel.cpp
@@ -147,3 +149,17 @@ endif()
 add_test(NAME test_optionspanel COMMAND test_optionspanel)
 # A widget test needs a display; CI machines have none, so draw offscreen.
 set_tests_properties(test_optionspanel PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+
+qt_add_executable(test_scanfile
+    tests/test_scanfile.cpp
+    src/NmapXmlParser.cpp
+    src/NmapXmlParser.h
+    src/ScanData.h
+    src/ScanFile.cpp
+    src/ScanFile.h
+)
+target_include_directories(test_scanfile PRIVATE src)
+target_compile_definitions(test_scanfile PRIVATE
+    FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
+target_link_libraries(test_scanfile PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME test_scanfile COMMAND test_scanfile)

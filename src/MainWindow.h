@@ -2,10 +2,12 @@
 
 #include "ScanOptions.h"
 
+#include <QByteArray>
 #include <QMainWindow>
 
 class NmapRunner;
 class OptionsPanel;
+class QAction;
 class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
@@ -28,6 +30,9 @@ private:
     void startScan();
     void onScanFinished(const QByteArray &xml);
     void onScanFailed(const QString &message);
+    void setScanRunning(bool running);
+    void openScan();
+    void saveScan();
 
     QLineEdit *m_targetEdit;
     QPushButton *m_scanButton;
@@ -40,6 +45,11 @@ private:
     NmapRunner *m_runner;
     ScanTableModel *m_model;
     QSortFilterProxyModel *m_proxy;
+    QAction *m_openAction;
+    QAction *m_saveAction;
+    // The XML behind the table, from a scan or a file. Saving writes exactly
+    // these bytes. Empty while there is nothing to save.
+    QByteArray m_currentXml;
     // True once the user typed into the command. From then on their text is
     // what runs, until an option change replaces it.
     bool m_commandEdited = false;

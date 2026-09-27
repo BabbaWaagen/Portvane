@@ -6,13 +6,20 @@
 #include "NmapXmlParser.h"
 #include "OptionsPanel.h"
 #include "Privileges.h"
+#include "ScanFile.h"
 #include "ScanTableModel.h"
 
+#include <QAction>
+#include <QDir>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QFontDatabase>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMenu>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -37,9 +44,17 @@ MainWindow::MainWindow(QWidget *parent)
     , m_runner(new NmapRunner(this))
     , m_model(new ScanTableModel(this))
     , m_proxy(new QSortFilterProxyModel(this))
+    , m_openAction(new QAction(tr("&Open Scan..."), this))
+    , m_saveAction(new QAction(tr("&Save Scan..."), this))
 {
     setWindowTitle(tr("Portvane"));
     resize(1000, 700);
+
+    m_openAction->setShortcut(QKeySequence::Open);
+    m_saveAction->setShortcut(QKeySequence::Save);
+    QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
+    fileMenu->addAction(m_openAction);
+    fileMenu->addAction(m_saveAction);
 
     m_targetEdit->setPlaceholderText(tr("Host, IP range or CIDR, e.g. scanme.nmap.org"));
     m_options->setPrivileges(detectPrivileges());
@@ -95,6 +110,8 @@ MainWindow::MainWindow(QWidget *parent)
     layout->addWidget(splitter);
     setCentralWidget(central);
 
+    connect(m_openAction, &QAction::triggered, this, &MainWindow::openScan);
+    connect(m_saveAction, &QAction::triggered, this, &MainWindow::saveScan);
     connect(m_scanButton, &QPushButton::clicked, this, &MainWindow::startScan);
     connect(m_targetEdit, &QLineEdit::returnPressed, this, &MainWindow::startScan);
     connect(m_commandEdit, &QLineEdit::returnPressed, this, &MainWindow::startScan);
@@ -112,6 +129,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_runner, &NmapRunner::scanFailed, this, &MainWindow::onScanFailed);
 
     updateCommand();
+    setScanRunning(false);
 }
 
 ScanOptions MainWindow::currentOptions() const
@@ -174,29 +192,84 @@ void MainWindow::startScan()
 
     m_console->clear();
     m_model->setHosts({});
-    m_scanButton->setEnabled(false);
+    m_currentXml.clear();
+    setScanRunning(true);
     statusBar()->showMessage(tr("Scanning..."));
     m_runner->start(*nmapPath, arguments);
 }
 
 void MainWindow::onScanFinished(const QByteArray &xml)
 {
-    m_scanButton->setEnabled(true);
-
     const ParseResult result = parseNmapXml(xml);
     if (!result.error.isEmpty()) {
         m_console->appendPlainText(tr("Error: could not read the scan results: %1").arg(result.error));
         statusBar()->showMessage(tr("Scan failed."));
+        setScanRunning(false);
         return;
     }
 
+    m_currentXml = xml;
     m_model->setHosts(result.hosts);
     statusBar()->showMessage(tr("Scan finished: %1 hosts.").arg(result.hosts.size()));
+    setScanRunning(false);
 }
 
 void MainWindow::onScanFailed(const QString &message)
 {
-    m_scanButton->setEnabled(true);
     m_console->appendPlainText(tr("Error: %1").arg(message));
     statusBar()->showMessage(tr("Scan failed."));
+    setScanRunning(false);
+}
+
+// Opening a file mid-scan would be overwritten by the scan's results, so
+// Open is locked together with the Scan button.
+void MainWindow::setScanRunning(bool running)
+{
+    m_scanButton->setEnabled(!running);
+    m_openAction->setEnabled(!running);
+    m_saveAction->setEnabled(!running && !m_currentXml.isEmpty());
+}
+
+void MainWindow::openScan()
+{
+    const QString path = QFileDialog::getOpenFileName(this, tr("Open Scan"), QString(),
+                                                      tr("nmap XML (*.xml);;All files (*)"));
+    if (path.isEmpty())
+        return; // cancelled
+
+    QByteArray xml;
+    QString error = loadScanFile(path, xml);
+    ParseResult result;
+    if (error.isEmpty()) {
+        result = parseNmapXml(xml);
+        error = result.error;
+    }
+    // On failure the current results stay, so a wrong click costs nothing.
+    if (!error.isEmpty()) {
+        QMessageBox::warning(this, tr("Could not open scan"),
+                             tr("%1\n\n%2").arg(QDir::toNativeSeparators(path), error));
+        return;
+    }
+
+    m_currentXml = xml;
+    m_model->setHosts(result.hosts);
+    setScanRunning(false);
+    statusBar()->showMessage(
+        tr("Opened %1: %2 hosts.").arg(QFileInfo(path).fileName()).arg(result.hosts.size()));
+}
+
+void MainWindow::saveScan()
+{
+    const QString path = QFileDialog::getSaveFileName(this, tr("Save Scan"), QString(),
+                                                      tr("nmap XML (*.xml)"));
+    if (path.isEmpty())
+        return; // cancelled
+
+    const QString error = saveScanFile(path, m_currentXml);
+    if (!error.isEmpty()) {
+        QMessageBox::warning(this, tr("Could not save scan"),
+                             tr("%1\n\n%2").arg(QDir::toNativeSeparators(path), error));
+        return;
+    }
+    statusBar()->showMessage(tr("Saved %1.").arg(QDir::toNativeSeparators(path)));
 }
