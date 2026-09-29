@@ -1,11 +1,13 @@
 #include "MainWindow.h"
 
 #include "CommandLine.h"
+#include "DiffWindow.h"
 #include "NmapLocator.h"
 #include "NmapRunner.h"
 #include "NmapXmlParser.h"
 #include "OptionsPanel.h"
 #include "Privileges.h"
+#include "ScanDiff.h"
 #include "ScanFile.h"
 #include "ScanTableModel.h"
 
@@ -46,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_proxy(new QSortFilterProxyModel(this))
     , m_openAction(new QAction(tr("&Open Scan..."), this))
     , m_saveAction(new QAction(tr("&Save Scan..."), this))
+    , m_compareAction(new QAction(tr("&Compare With..."), this))
 {
     setWindowTitle(tr("Portvane"));
     resize(1000, 700);
@@ -55,6 +58,8 @@ MainWindow::MainWindow(QWidget *parent)
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(m_openAction);
     fileMenu->addAction(m_saveAction);
+    fileMenu->addSeparator();
+    fileMenu->addAction(m_compareAction);
 
     m_targetEdit->setPlaceholderText(tr("Host, IP range or CIDR, e.g. scanme.nmap.org"));
     m_options->setPrivileges(detectPrivileges());
@@ -112,6 +117,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(m_openAction, &QAction::triggered, this, &MainWindow::openScan);
     connect(m_saveAction, &QAction::triggered, this, &MainWindow::saveScan);
+    connect(m_compareAction, &QAction::triggered, this, &MainWindow::compareWith);
     connect(m_scanButton, &QPushButton::clicked, this, &MainWindow::startScan);
     connect(m_targetEdit, &QLineEdit::returnPressed, this, &MainWindow::startScan);
     connect(m_commandEdit, &QLineEdit::returnPressed, this, &MainWindow::startScan);
@@ -228,6 +234,20 @@ void MainWindow::setScanRunning(bool running)
     m_scanButton->setEnabled(!running);
     m_openAction->setEnabled(!running);
     m_saveAction->setEnabled(!running && !m_currentXml.isEmpty());
+    m_compareAction->setEnabled(!running && !m_currentXml.isEmpty());
+}
+
+// Reads and parses a saved scan. The error, if any, is from whichever of the
+// two steps failed.
+static ParseResult readScan(const QString &path, QByteArray &xml)
+{
+    const QString loadError = loadScanFile(path, xml);
+    if (!loadError.isEmpty()) {
+        ParseResult result;
+        result.error = loadError;
+        return result;
+    }
+    return parseNmapXml(xml);
 }
 
 void MainWindow::openScan()
@@ -238,16 +258,11 @@ void MainWindow::openScan()
         return; // cancelled
 
     QByteArray xml;
-    QString error = loadScanFile(path, xml);
-    ParseResult result;
-    if (error.isEmpty()) {
-        result = parseNmapXml(xml);
-        error = result.error;
-    }
+    const ParseResult result = readScan(path, xml);
     // On failure the current results stay, so a wrong click costs nothing.
-    if (!error.isEmpty()) {
+    if (!result.error.isEmpty()) {
         QMessageBox::warning(this, tr("Could not open scan"),
-                             tr("%1\n\n%2").arg(QDir::toNativeSeparators(path), error));
+                             tr("%1\n\n%2").arg(QDir::toNativeSeparators(path), result.error));
         return;
     }
 
@@ -272,4 +287,29 @@ void MainWindow::saveScan()
         return;
     }
     statusBar()->showMessage(tr("Saved %1.").arg(QDir::toNativeSeparators(path)));
+}
+
+// The shown results are the newer side ("after"); the picked file is the
+// older one. To compare two files, open one and compare it with the other.
+void MainWindow::compareWith()
+{
+    const QString path = QFileDialog::getOpenFileName(this, tr("Compare With Earlier Scan"),
+                                                      QString(),
+                                                      tr("nmap XML (*.xml);;All files (*)"));
+    if (path.isEmpty())
+        return; // cancelled
+
+    QByteArray xml;
+    const ParseResult before = readScan(path, xml);
+    if (!before.error.isEmpty()) {
+        QMessageBox::warning(this, tr("Could not open scan"),
+                             tr("%1\n\n%2").arg(QDir::toNativeSeparators(path), before.error));
+        return;
+    }
+
+    // m_currentXml was parsed successfully when it was set, so this can't fail.
+    const QList<Host> after = parseNmapXml(m_currentXml).hosts;
+    auto *window = new DiffWindow(diffScans(before.hosts, after), QFileInfo(path).fileName(),
+                                  tr("current results"), this);
+    window->show();
 }

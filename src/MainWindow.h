@@ -33,6 +33,7 @@ private:
     void setScanRunning(bool running);
     void openScan();
     void saveScan();
+    void compareWith();
 
     QLineEdit *m_targetEdit;
     QPushButton *m_scanButton;
@@ -47,6 +48,7 @@ private:
     QSortFilterProxyModel *m_proxy;
     QAction *m_openAction;
     QAction *m_saveAction;
+    QAction *m_compareAction;
     // The XML behind the table, from a scan or a file. Saving writes exactly
     // these bytes. Empty while there is nothing to save.
     QByteArray m_currentXml;

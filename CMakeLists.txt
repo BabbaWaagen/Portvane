@@ -23,6 +23,10 @@ qt_add_executable(portvane WIN32
     src/main.cpp
     src/CommandLine.cpp
     src/CommandLine.h
+    src/DiffTableModel.cpp
+    src/DiffTableModel.h
+    src/DiffWindow.cpp
+    src/DiffWindow.h
     src/MainWindow.cpp
     src/MainWindow.h
     src/NmapLocator.cpp
@@ -36,6 +40,8 @@ qt_add_executable(portvane WIN32
     src/Privileges.cpp
     src/Privileges.h
     src/ScanData.h
+    src/ScanDiff.cpp
+    src/ScanDiff.h
     src/ScanFile.cpp
     src/ScanFile.h
     src/ScanOptions.cpp
@@ -163,3 +169,29 @@ target_compile_definitions(test_scanfile PRIVATE
     FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
 target_link_libraries(test_scanfile PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME test_scanfile COMMAND test_scanfile)
+
+qt_add_executable(test_scandiff
+    tests/test_scandiff.cpp
+    src/NmapXmlParser.cpp
+    src/NmapXmlParser.h
+    src/ScanData.h
+    src/ScanDiff.cpp
+    src/ScanDiff.h
+)
+target_include_directories(test_scandiff PRIVATE src)
+target_compile_definitions(test_scandiff PRIVATE
+    FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
+target_link_libraries(test_scandiff PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME test_scandiff COMMAND test_scandiff)
+
+qt_add_executable(test_difftablemodel
+    tests/test_difftablemodel.cpp
+    src/DiffTableModel.cpp
+    src/DiffTableModel.h
+    src/ScanData.h
+    src/ScanDiff.cpp
+    src/ScanDiff.h
+)
+target_include_directories(test_difftablemodel PRIVATE src)
+target_link_libraries(test_difftablemodel PRIVATE Qt6::Gui Qt6::Test)
+add_test(NAME test_difftablemodel COMMAND test_difftablemodel)
